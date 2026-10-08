@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/examples/">
+    <Project Path="examples/Halloween.SampleBot/Halloween.SampleBot.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Halloween.Engine/Halloween.Engine.csproj" />
+    <Project Path="src/Halloween.Simulator/Halloween.Simulator.csproj" />
+    <Project Path="src/Halloween.Web/Halloween.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Halloween.Tests/Halloween.Tests.csproj" />
+  </Folder>
+</Solution>

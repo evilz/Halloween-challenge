@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111319"><title>Hollow Arena — le défi des bots</title>
+  <link rel="icon" href="/assets/pumpkin.svg"><link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><img src="/assets/pumpkin.svg" alt="" width="38" height="38"><span>HOLLOW<span class="brand-light"> ARENA</span><small>CODE. SURVIVE. REPEAT.</small></span></a>
+    <nav aria-label="Navigation principale"><button class="nav active" data-tab="arena">Arène</button><button class="nav" data-tab="bots">Mes bots <span id="bot-count" class="count">3</span></button><button class="nav" data-tab="guide">Comment jouer</button></nav>
+    <span class="tech"><i></i> C# 14 / .NET 10</span>
+  </header>
+  <main>
+    <section id="tab-arena" class="tab">
+      <div class="page-heading"><div><div class="eyebrow">HALLOWEEN CODE CHALLENGE</div><h1>Que le meilleur <em>bot</em> survive.</h1><p>Un labyrinthe. Des spectres. Votre code aux commandes.</p></div><button id="new-match" class="button primary">＋ Nouvelle partie</button></div>
+      <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+      <div class="arena-layout">
+        <section class="playfield panel">
+          <div class="panel-heading"><div><span id="status-dot" class="status-dot"></span><strong id="match-status">PRÊT À JOUER</strong><span id="seed-label" class="muted">Graine 2020</span></div><span class="turn-label">TOUR <b id="turn">0</b><span id="max-turns"> / 150</span></span></div>
+          <div class="canvas-wrap"><canvas id="board" width="1000" height="680" aria-label="Labyrinthe du simulateur : positions des bots, murs et spectres"></canvas><div id="empty-board" class="empty-board"><img src="/assets/pumpkin.svg" alt="" width="70" height="70"><h2>Le labyrinthe vous attend.</h2><p>Sélectionnez vos bots, puis créez une partie.</p><button id="first-match" class="button primary">Créer l'arène →</button></div></div>
+          <div class="legend"><span><i class="swatch pumpkin"></i> Bot</span><span><i class="swatch hostile"></i> Spectre hostile</span><span><i class="swatch neutral"></i> Spectre neutre</span><span><i class="swatch wall"></i> Mur</span><label>Vision <select id="vision"><option value="all">Spectateur · carte entière</option></select></label></div>
+          <div class="transport"><div class="transport-buttons"><button id="play" class="button primary" disabled>▶ Lancer</button><button id="step" class="button secondary" disabled title="Avancer d'un tour">Un tour →</button><select id="speed" aria-label="Vitesse de lecture"><option value="800">×1</option><option value="300" selected>×2</option><option value="80">×4</option><option value="0">Max</option></select></div><div class="replay-buttons"><button id="export" class="icon-button" disabled>↓ Exporter</button><button id="import" class="icon-button">↑ Replay</button><input type="file" id="replay-file" accept="application/json,.json" hidden></div></div>
+          <div class="timeline"><input id="timeline" type="range" min="0" max="0" value="0" aria-label="Tour affiché" disabled><span id="timeline-label">0 / 0</span></div>
+        </section>
+        <aside class="sidebar">
+          <section class="panel settings"><div class="panel-title"><h2>La partie</h2><span class="badge">SIMULATEUR</span></div>
+            <div class="form-grid"><label>Largeur<input id="width" type="number" min="10" max="50" value="25"></label><label>Hauteur<input id="height" type="number" min="10" max="25" value="17"></label><label>Nombre de tours<input id="turns" type="number" min="50" max="5000" value="150"></label><label>Graine aléatoire<input id="seed" type="number" min="-2147483648" max="2147483647" value="2020"></label></div>
+            <details><summary>Paramètres avancés</summary><div class="form-grid advanced"><label>Rayon de vision<input id="radius" type="number" min="1" max="10" value="3"></label><label>Recharge (tours)<input id="reload" type="number" min="0" max="50" value="3"></label><label>Retour (tours)<input id="respawn" type="number" min="0" max="50" value="5"></label><label>Ennemis initiaux<input id="enemies" type="number" min="0" max="100" value="8"></label><label>Apparition / tours<input id="spawn" type="number" min="1" max="1000" value="8"></label><label>Neutralité (tours)<input id="neutral" type="number" min="0" max="50" value="3"></label><label>Ennemis maximum<input id="max-enemies" type="number" min="0" max="100" value="30"></label></div></details>
+            <div class="divider"></div><div class="section-caption">BOTS EN LICE <span id="selected-count">3 / 9</span></div><div id="bot-selection"></div><button class="add-link" data-tab="bots">＋ Connecter mon bot</button>
+          </section>
+          <section class="panel ranking"><div class="panel-title"><h2>Classement</h2><span class="muted">POINTS</span></div><div id="ranking"><p class="placeholder">Les scores apparaîtront ici.</p></div><p class="score-note">Survie +1 · spectre +5 · bot +10</p></section>
+        </aside>
+      </div>
+      <section class="panel event-panel"><div class="panel-title"><h2><span class="accent">⌁</span> Journal de l'arène</h2><span id="event-count" class="muted">EN ATTENTE</span></div><div id="events" aria-live="off"><p class="placeholder">Chaque rencontre laisse une trace.</p></div></section>
+      <div class="footer-note"><span>Moteur inspiré du challenge vpTech 2020 · Graphismes originaux</span><span>La stratégie fait la différence.</span></div>
+    </section>
+    <section id="tab-bots" class="tab" hidden>
+      <div class="page-heading"><div><div class="eyebrow">VOTRE CODE ENTRE EN SCÈNE</div><h1>Donnez vie à votre <em>bot.</em></h1><p>Une API REST, deux endpoints. Le langage est votre choix.</p></div></div>
+      <div class="onboarding-grid"><section class="panel connection"><span class="step-number">01</span><h2>Connecter une API</h2><p>Hébergez votre bot, puis indiquez son URL de base. Nous appelons <code>POST /name</code> pour l'enregistrer.</p><form id="bot-form"><label for="bot-url">URL de votre bot</label><div class="input-action"><input id="bot-url" type="url" required maxlength="300" placeholder="https://mon-bot.example.com/"><button id="register" class="button primary" type="submit">Connecter →</button></div></form><p id="bot-result" class="connection-result" role="status" aria-live="polite"></p><div class="tip">En local : démarrez l'exemple C# et utilisez <code>http://localhost:5081</code>. Les adresses locales sont autorisées en mode Development.</div></section>
+        <section class="panel starter"><span class="step-number">02</span><h2>Un point de départ en C#</h2><p>Téléchargez le bot prêt à jouer, décompressez-le puis lancez <code>dotnet run</code> dans son dossier. Modifiez sa stratégie et observez ses décisions.</p><a class="button secondary download-bot" href="/starter/Halloween.Bot.zip" download>Télécharger le bot C# ↓</a><p>Depuis le dépôt, vous pouvez aussi lancer :</p><pre><code>dotnet run --project examples/Halloween.SampleBot</code></pre><p>Votre réponse à <code>POST /move</code> :</p><pre><code>{ "move": "fire-right" }</code></pre><button class="button secondary" data-tab="guide">Voir le protocole →</button></section></div>
+      <h2 class="section-heading">Les bots disponibles</h2><div id="bot-cards" class="bot-cards"></div>
+    </section>
+    <section id="tab-guide" class="tab" hidden>
+      <div class="page-heading"><div><div class="eyebrow">LES RÈGLES DU LABYRINTHE</div><h1>Du code à la <em>survie.</em></h1><p>Compatible avec le protocole REST du challenge vpTech 2020.</p></div></div>
+      <div class="guide-grid"><article class="panel"><span class="step-number">01</span><h2>Le tour de jeu</h2><p>Tous les bots vivants reçoivent leur observation en parallèle. Ils ont <strong>3 secondes</strong> pour répondre.</p><ol><li>Déplacements simultanés des bots.</li><li>Collisions et contacts avec les ennemis.</li><li>Tirs simultanés, puis déplacement des spectres.</li><li>Apparitions des ennemis et calcul du score.</li></ol><p>Deux bots sur une même case meurent. Les tirs réciproques peuvent éliminer les deux tireurs.</p></article><article class="panel"><span class="step-number">02</span><h2>Voir, tirer, revenir</h2><p>Un bot reçoit uniquement les cases de son carré de vision. Les coordonnées commencent à <code>(0, 0)</code>, en haut à gauche.</p><p>Un tir va en ligne droite, s'arrête au premier mur ou à la première cible et reste dans la zone visible. La recharge est réglable.</p><p>Un spectre neutre se capture au contact ; un spectre hostile tue. Après sa mort, un bot revient à la même case, dès qu'elle est libre.</p></article><article class="panel"><span class="step-number">03</span><h2>Le contrat HTTP</h2><p><code>POST /name</code>, sans corps :</p><pre><code>{ "name": "Mon bot", "email": "moi@example.com" }</code></pre><p><code>POST /move</code>, réponse :</p><pre><code>{ "move": "up" }</code></pre><p>Commandes : <code>up</code>, <code>down</code>, <code>left</code>, <code>right</code> et leur variante <code>fire-</code>. <code>null</code> permet d'attendre.</p><p>Timeout, erreur HTTP ou commande invalide : le bot reste immobile. Le journal indique le problème.</p></article><article class="panel"><span class="step-number">04</span><h2>L'observation</h2><pre class="observation-example"><code>{
+  "game": { "id": "…" },
+  "player": {
+    "id": "…", "name": "Mon bot",
+    "position": { "x": 4, "y": 3 },
+    "previous": { "x": 4, "y": 2 },
+    "area": { "x1": 1, "y1": 0,
+              "x2": 7, "y2": 6 },
+    "fire": true
+  },
+  "board": {
+    "size": { "width": 25, "height": 17 },
+    "walls": [{ "x": 3, "y": 3 }]
+  },
+  "players": [{ "x": 6, "y": 3 }],
+  "enemies": [{ "x": 4, "y": 5,
+                "neutral": false }]
+}</code></pre></article></div>
+      <p class="guide-note">Choix de cette version : vision carrée de rayon 3 par défaut, murs bloquants pour les tirs, munitions renouvelées après recharge et classement par points. Ces éléments sont configurables ou explicités dans <code>docs/RULES.md</code>, car le PDF ne les fixe pas tous.</p>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+.vs/
+tmp/
+artifacts/
+**/App_Data/
+*.user
+node_modules/
+Rules - vpTech presents - Code Challenge 2020.pdf

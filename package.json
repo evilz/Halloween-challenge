@@ -1,0 +1,6 @@
+{
+  "name": "hollow-arena-browser-checks",
+  "private": true,
+  "scripts": { "test:web": "node scripts/web-smoke.cjs" },
+  "devDependencies": { "playwright": "1.62.1" }
+}

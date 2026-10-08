@@ -1,0 +1,10 @@
+services:
+  arena:
+    build: .
+    ports:
+      - "5080:8080"
+    volumes:
+      - bots:/app/App_Data
+    restart: unless-stopped
+volumes:
+  bots:

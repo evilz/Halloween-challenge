@@ -1,0 +1,8 @@
+**/bin
+**/obj
+**/App_Data
+node_modules
+artifacts
+tmp
+*.pdf
+.git

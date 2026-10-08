@@ -1,0 +1,86 @@
+const { chromium } = require('playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+
+(async () => {
+  const browser = await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{})});
+  const page = await browser.newPage({baseURL:process.env.ARENA_URL || 'http://localhost:5080',viewport:{width:1440,height:1100},deviceScaleFactor:1});
+  const errors = [];
+  page.on('pageerror',error=>errors.push(error.message));
+  const output = path.resolve('artifacts');
+  await fs.mkdir(output,{recursive:true});
+  let matchId;
+  try {
+    await page.goto(process.env.ARENA_URL || 'http://localhost:5080');
+    await page.locator('.bot-checkbox').first().waitFor();
+    assert.equal(await page.title(),'Hollow Arena — le défi des bots');
+    await page.locator('#first-match').click();
+    await page.waitForFunction(()=>document.querySelector('#match-status').textContent==='PARTIE EN PAUSE');
+    await page.locator('#step').click();
+    await page.waitForFunction(()=>document.querySelector('#turn').textContent==='1');
+    assert.equal(await page.locator('.ranking-row').count(),3);
+    await page.locator('#vision').selectOption({label:'Jack le chasseur'});
+    await page.screenshot({path:path.join(output,'vision.png'),fullPage:true});
+    await page.locator('#vision').selectOption('all');
+    await page.locator('#play').click();
+    await page.waitForFunction(()=>Number(document.querySelector('#turn').textContent)>=4);
+    await page.locator('#play').click();
+    await page.waitForFunction(()=>!document.querySelector('#step').disabled);
+    assert.equal(await page.locator('#play').textContent(),'▶ Lancer');
+    await page.screenshot({path:path.join(output,'arena-desktop.png'),fullPage:true});
+    const downloadPromise=page.waitForEvent('download');
+    await page.locator('#export').click();
+    const download=await downloadPromise, replayPath=path.join(output,'web-replay.json');
+    await download.saveAs(replayPath);
+    const exported=JSON.parse(await fs.readFile(replayPath,'utf8'));assert.equal(exported.version,2);
+    assert.ok(exported.frames.length>=5);matchId=exported.initial.id;
+    await page.locator('#timeline').fill('0');await page.locator('#timeline').dispatchEvent('input');
+    assert.equal(await page.locator('#turn').textContent(),'0');
+    await page.locator('#replay-file').setInputFiles(replayPath);
+    await page.waitForFunction(()=>document.querySelector('#match-status').textContent==='LECTURE DU REPLAY');
+    await page.locator('#step').click();assert.equal(await page.locator('#turn').textContent(),'1');
+    // Confirm the simulator's uncompressed version-1 replay is accepted too.
+    const cliReplay=path.resolve('tmp/replay.json');
+    try{await fs.access(cliReplay);await page.locator('#replay-file').setInputFiles(cliReplay);await page.waitForFunction(()=>document.querySelector('#turn').textContent==='0');}catch(error){if(error.code!=='ENOENT')throw error;}
+    await page.locator('.nav[data-tab="bots"]').click();
+    const starterDownloadPromise=page.waitForEvent('download');
+    await page.locator('.download-bot').click();
+    const starterDownload=await starterDownloadPromise;
+    await starterDownload.saveAs(path.join(output,'Halloween.Bot.zip'));
+    assert.ok((await fs.stat(path.join(output,'Halloween.Bot.zip'))).size>1000);
+    await page.locator('#bot-url').fill('http://localhost:5081');
+    await page.locator('#register').click();
+    await page.waitForFunction(()=>document.querySelector('#bot-result').classList.contains('success'));
+    assert.ok((await page.locator('#bot-cards').textContent()).includes('Mon premier bot'));
+    await page.screenshot({path:path.join(output,'bots-desktop.png'),fullPage:true});
+    await page.locator('.nav[data-tab="arena"]').click();
+    await page.locator('#new-match').click();
+    await page.waitForFunction(()=>document.querySelector('#match-status').textContent==='PARTIE EN PAUSE');
+    await page.locator('#step').click();await page.waitForFunction(()=>document.querySelector('#turn').textContent==='1');
+    assert.equal(await page.locator('.ranking-row').count(),4);
+    assert.equal(await page.locator('.event-bot-error').count(),0);
+    await page.setViewportSize({width:390,height:844});
+    await page.screenshot({path:path.join(output,'arena-mobile.png'),fullPage:true});
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'Mobile page overflows horizontally');
+    await page.locator('.nav[data-tab="guide"]').click();
+    assert.ok(await page.locator('#tab-guide').isVisible());
+    const invalid=await page.request.post('/api/matches',{data:{options:{width:9},botIds:['hunter']}});assert.equal(invalid.status(),400);
+    const privateBot=await page.request.post('/api/bots',{data:{url:'http://169.254.169.254'}});assert.equal(privateBot.status(),400);
+    await page.locator('.nav[data-tab="arena"]').click();
+    await page.locator('#turns').fill('50');await page.locator('#new-match').click();
+    await page.waitForFunction(()=>document.querySelector('#match-status').textContent==='PARTIE EN PAUSE');
+    await page.locator('#speed').selectOption('0');await page.locator('#play').click();
+    await page.waitForFunction(()=>document.querySelector('#match-status').textContent==='PARTIE TERMINÉE',{},{timeout:30000});
+    assert.equal(await page.locator('#turn').textContent(),'50');
+    assert.ok(await page.locator('#step').isDisabled());
+    const finalDownload=page.waitForEvent('download');await page.locator('#export').click();
+    const final=await finalDownload;await final.saveAs(path.join(output,'complete-replay.json'));
+    matchId=JSON.parse(await fs.readFile(path.join(output,'complete-replay.json'),'utf8')).initial.id;
+    assert.deepEqual(errors,[]);
+    console.log('PASS: setup, steps, pause, fog, export/import, bot registration, remote moves, mobile, validation, full 50-turn match.');
+  } finally {
+    if(matchId)await page.request.delete(`/api/matches/${matchId}`).catch(()=>{});
+    await browser.close();
+  }
+})().catch(error=>{console.error(error);process.exitCode=1;});
